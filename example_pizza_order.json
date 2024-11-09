@@ -5,7 +5,10 @@
         {
             "type": "header",
             "text": "Order Your Favorite Pizza!",
-            "coordinates": { "x": 100, "y": 30 },
+            "coordinates": {
+                "x": 100,
+                "y": 30
+            },
             "style": {
                 "fontSize": "30px",
                 "color": "#333",
@@ -15,8 +18,16 @@
         {
             "type": "dropdown",
             "text": "Select Pizza:",
-            "options": ["Margherita", "Pepperoni", "Veggie", "BBQ Chicken"],
-            "coordinates": { "x": 100, "y": 80 },
+            "options": [
+                "Margherita",
+                "Pepperoni",
+                "Veggie",
+                "BBQ Chicken"
+            ],
+            "coordinates": {
+                "x": 100,
+                "y": 80
+            },
             "style": {
                 "fontSize": "20px",
                 "position": "absolute"
@@ -25,8 +36,15 @@
         {
             "type": "dropdown",
             "text": "Select Size:",
-            "options": ["Small", "Medium", "Large"],
-            "coordinates": { "x": 100, "y": 140 },
+            "options": [
+                "Small",
+                "Medium",
+                "Large"
+            ],
+            "coordinates": {
+                "x": 100,
+                "y": 140
+            },
             "style": {
                 "fontSize": "20px",
                 "position": "absolute"
@@ -35,8 +53,16 @@
         {
             "type": "checkbox",
             "text": "Choose Toppings:",
-            "options": ["Extra Cheese", "Olives", "Peppers", "Onions"],
-            "coordinates": { "x": 100, "y": 200 },
+            "options": [
+                "Extra Cheese",
+                "Olives",
+                "Peppers",
+                "Onions"
+            ],
+            "coordinates": {
+                "x": 100,
+                "y": 200
+            },
             "style": {
                 "fontSize": "20px",
                 "position": "absolute"
@@ -45,7 +71,10 @@
         {
             "type": "button",
             "text": "Buy Now",
-            "coordinates": { "x": 100, "y": 300 },
+            "coordinates": {
+                "x": 100,
+                "y": 300
+            },
             "style": {
                 "fontSize": "25px",
                 "backgroundColor": "#4CAF50",
