@@ -2,10 +2,71 @@ import os
 import time
 import pyautogui
 import subprocess
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import io
 from dotenv import load_dotenv
 import base64
+import numpy as np
+
+def add_coordinate_labels(image_array, step=50):
+    """
+    Adds coordinate labels with arrows to an image for pixel positions.
+    
+    Args:
+        image_array: numpy array of the image
+        step: spacing between labeled points (default 50 pixels)
+    
+    Returns:
+        PIL Image with coordinate labels and arrows
+    """
+    # Convert numpy array to PIL Image for drawing
+    image = Image.fromarray(image_array)
+    draw = ImageDraw.Draw(image)
+    
+    # Try to load a system font, fall back to default if not found
+    try:
+        font = ImageFont.truetype("arial.ttf", 12)
+    except:
+        font = ImageFont.load_default()
+    
+    height, width = image_array.shape[:2]
+    
+    # Create coordinate points grid
+    for y in range(0, height, step):
+        for x in range(0, width, step):
+            # Draw arrow
+            arrow_length = 20
+            arrow_color = (255, 0, 0)  # Red color for visibility
+            
+            # Calculate arrow endpoint (offset from point for visibility)
+            end_x = x + 15
+            end_y = y - 15
+            
+            # Draw arrow line
+            draw.line([(end_x, end_y), (x, y)], fill=arrow_color, width=1)
+            
+            # Draw arrowhead
+            arrow_size = 5
+            draw.polygon([
+                (x, y),
+                (x + arrow_size, y - arrow_size),
+                (x - arrow_size, y - arrow_size)
+            ], fill=arrow_color)
+            
+            # Add coordinate text
+            text = f"({x}, {y})"
+            text_bbox = draw.textbbox((end_x, end_y), text, font=font)
+            
+            # Draw white background for text for better visibility
+            draw.rectangle([
+                (text_bbox[0]-2, text_bbox[1]-2),
+                (text_bbox[2]+2, text_bbox[3]+2)
+            ], fill=(255, 255, 255))
+            
+            # Draw coordinate text
+            draw.text((end_x, end_y), text, fill=(0, 0, 0), font=font)
+    
+    return image
 
 class ScreenshotProcessor:
     def __init__(self, client):
@@ -20,14 +81,21 @@ class ScreenshotProcessor:
         """Take a screenshot and save it temporarily."""
         screenshot = pyautogui.screenshot()
         
+        # Convert PIL Image to numpy array
+        screenshot_array = np.array(screenshot)
+        
+        # Add coordinate labels
+        labeled_screenshot = add_coordinate_labels(screenshot_array)
+        
         # Save screenshot to bytes
         img_byte_arr = io.BytesIO()
-        screenshot.save(img_byte_arr, format='PNG')
+        labeled_screenshot.save(img_byte_arr, format='PNG')
         img_byte_arr = img_byte_arr.getvalue()
         
         # Save to file temporarily
-        temp_path = "temp_screenshot.png"
-        screenshot.save(temp_path)
+        datetime_yyyy_mm_dd_hh_mm_ss = time.strftime("%Y%m%d_%H%M%S")
+        temp_path = f"./screenshots/temp_screenshot-{datetime_yyyy_mm_dd_hh_mm_ss}.png"
+        labeled_screenshot.save(temp_path)
         
         return temp_path
 
@@ -45,7 +113,7 @@ class ScreenshotProcessor:
                     "content": """You are an expert Python automation engineer specializing in PyAutoGUI. 
                     Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
                     Use pyautogui functions and include necessary imports. Focus on accurate coordinates and reliable automation sequences. 
-                    Return only executable Python code without any explanation."""
+                    Return only executable Python code without any explanation. Use the coordinate labels in the screenshot for precise positioning."""
                 },
                 {
                     "role": "user",
@@ -65,19 +133,12 @@ class ScreenshotProcessor:
             ]
 
             # Make the API call
-            # try:
             response = self.client.chat.completions.create(
                 model=os.getenv("VISION_MODEL"),
                 messages=messages,
                 max_tokens=4000,
                 temperature=0.0,
             )
-            # except openai.APIError as e:
-            #     print(f"OpenAI API returned an API Error: {e}")
-            # except openai.APIConnectionError as e:
-            #     print(f"Failed to connect to OpenAI API: {e}")
-            # except openai.APITimeoutError as e:
-            #     print(f"OpenAI API request timed out: {e}")
 
             return response.choices[0].message.content
 
@@ -117,7 +178,6 @@ def main():
             return
         
         from openai import OpenAI
-        #print("OpenAI api key = ", os.getenv('OPENAI_API_KEY'))
         client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
             
         processor = ScreenshotProcessor(client)
