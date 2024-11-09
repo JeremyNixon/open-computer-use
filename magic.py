@@ -113,7 +113,7 @@ class ScreenshotProcessor:
                     "content": """You are an expert Python automation engineer specializing in PyAutoGUI. 
                     Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
                     Use pyautogui functions and include necessary imports. Focus on accurate coordinates and reliable automation sequences. 
-                    Return only executable Python code without any explanation. Use the coordinate labels in the screenshot for precise positioning."""
+                    Return only executable Python code without print statements so I can see what's going on. Use the coordinate labels in the screenshot for precise positioning."""
                 },
                 {
                     "role": "user",
@@ -197,11 +197,21 @@ def main():
         print(cleaned_code)
         
         confirmation = input("\nWould you like to execute this code? (yes/no): ")
+        PREPARE_TIME = 0 # Time to prepare before execution , example 3 seconds
         
         if confirmation.lower() == 'yes':
-            print("Executing automation...")
+            print(f"Executing automation in {PREPARE_TIME} seconds...")
             try:
-                # Execute the cleaned code
+                # Add necessary imports and setup for the generated code
+                setup_code = """
+                import pyautogui
+                import time
+                pyautogui.FAILSAFE = True
+                pyautogui.PAUSE = 1
+                """
+                exec(setup_code)
+                time.sleep(PREPARE_TIME)  # Give user time to prepare
+                # Execute the setup and cleaned code
                 exec(cleaned_code)
             except Exception as e:
                 print(f"Error executing automation: {str(e)}")
