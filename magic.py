@@ -68,6 +68,30 @@ def add_coordinate_labels(image_array, step=50):
     
     return image
 
+def convert_coordinates_to_mac_os_4k_for_pyautogui(x, y):
+    """
+    Convert coordinates from Mac OS 4K resolution to PyAutoGUI coordinates.
+    
+    Args:
+        x: x-coordinate in Mac OS 4K resolution
+        y: y-coordinate in Mac OS 4K resolution
+    
+    Returns:
+        Tuple of converted PyAutoGUI coordinates
+    """
+    # Mac OS 4K resolution
+    mac_os_4k_width = 3840
+    mac_os_4k_height = 2160
+    
+    # PyAutoGUI default resolution
+    pyautogui_width, pyautogui_height = pyautogui.size()
+    
+    # Convert coordinates to PyAutoGUI resolution
+    x_new = x * pyautogui_width / mac_os_4k_width
+    y_new = y * pyautogui_height / mac_os_4k_height
+    
+    return x_new, y_new
+
 class ScreenshotProcessor:
     def __init__(self, client):
         print("Initializing...")
@@ -79,6 +103,9 @@ class ScreenshotProcessor:
         
     def take_screenshot(self) -> str:
         """Take a screenshot and save it temporarily."""
+        # Create screenshots directory if it doesn't exist
+        os.makedirs("screenshots", exist_ok=True)
+        
         screenshot = pyautogui.screenshot()
         
         # Convert PIL Image to numpy array
@@ -112,8 +139,10 @@ class ScreenshotProcessor:
                     "role": "system",
                     "content": """You are an expert Python automation engineer specializing in PyAutoGUI. 
                     Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
-                    Use pyautogui functions and include necessary imports. Focus on accurate coordinates and reliable automation sequences. 
-                    Return only executable Python code without print statements so I can see what's going on. Use the coordinate labels in the screenshot for precise positioning."""
+                    The code should be properly formatted without indentation at the root level.
+                    Include necessary imports and use time.sleep() for proper timing.
+                    Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
+                    Return only executable Python code without any markdown formatting or explanations."""
                 },
                 {
                     "role": "user",
@@ -146,7 +175,7 @@ class ScreenshotProcessor:
             print(f"Error generating automation code: {str(e)}")
             return None
 
-    def process_screenshot(self, instruction: str) -> tuple:
+    def process_screenshot_and_generate_code(self, instruction: str) -> tuple:
         """Process screenshot and generate automation code."""
         try:
             # Take screenshot
@@ -167,11 +196,32 @@ def clean_code(code: str) -> str:
     code = code.replace("```python", "").replace("```", "")
     # Remove leading/trailing whitespace
     code = code.strip()
-    return code
+    # Ensure no indentation at root level
+    lines = code.split('\n')
+    cleaned_lines = [line.strip() for line in lines]
+    return '\n'.join(cleaned_lines)
+
+def create_execution_environment():
+    """Create a safe execution environment with necessary imports."""
+    namespace = {
+        'pyautogui': pyautogui,
+        'time': time,
+        'subprocess': subprocess,
+    }
+    
+    # Configure PyAutoGUI
+    pyautogui.FAILSAFE = True
+    pyautogui.PAUSE = 1
+    
+    return namespace
 
 def main():
     """Main execution function."""
     load_dotenv()  # Load environment variables from .env file
+    
+    # Create screenshots directory if it doesn't exist
+    os.makedirs("screenshots", exist_ok=True)
+    
     try:
         if not os.getenv('OPENAI_API_KEY'):
             print("Error: OPENAI_API_KEY not found in environment variables")
@@ -184,7 +234,8 @@ def main():
         
         instruction = input("What action would you like to automate? ")
         
-        screenshot_path, generated_code = processor.process_screenshot(instruction)
+        # Fixed: Changed process_screenshot to process_screenshot_and_generate_code
+        screenshot_path, generated_code = processor.process_screenshot_and_generate_code(instruction)
         
         if not generated_code:
             print("Failed to generate automation code")
@@ -197,24 +248,23 @@ def main():
         print(cleaned_code)
         
         confirmation = input("\nWould you like to execute this code? (yes/no): ")
-        PREPARE_TIME = 0 # Time to prepare before execution , example 3 seconds
+        PREPARE_TIME = 0  # Time to prepare before execution
         
         if confirmation.lower() == 'yes':
             print(f"Executing automation in {PREPARE_TIME} seconds...")
             try:
-                # Add necessary imports and setup for the generated code
-                setup_code = """
-                import pyautogui
-                import time
-                pyautogui.FAILSAFE = True
-                pyautogui.PAUSE = 1
-                """
-                exec(setup_code)
-                time.sleep(PREPARE_TIME)  # Give user time to prepare
-                # Execute the setup and cleaned code
-                exec(cleaned_code)
+                # Create execution environment
+                exec_env = create_execution_environment()
+                
+                # Wait for preparation time
+                time.sleep(PREPARE_TIME)
+                
+                # Execute the cleaned code in the prepared environment
+                exec(cleaned_code, exec_env)
+                
             except Exception as e:
                 print(f"Error executing automation: {str(e)}")
+                print("Detailed error info:", e.__class__.__name__)
         else:
             print("Execution cancelled.")
             
