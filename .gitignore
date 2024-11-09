@@ -123,3 +123,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Api
+OPENAI_API_KEY.txt
