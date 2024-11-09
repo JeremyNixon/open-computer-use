@@ -142,7 +142,7 @@ class ScreenshotProcessor:
                     The code should be properly formatted without indentation at the root level.
                     Include necessary imports and use time.sleep() for proper timing.
                     Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
-                    Return only executable Python code without any markdown formatting or explanations."""
+                    Return only executable Python code without any markdown formatting or explanations. Make sure your co-ordinates are accurate for mac retina 4k resolution, for example (960,600) should be (170,450)"""
                 },
                 {
                     "role": "user",

@@ -1,0 +1,92 @@
+{
+    "title": "Pizza Ordering Page",
+    "resolution": "3840x2160",
+    "components": [
+        {
+            "type": "header",
+            "text": "Order Your Favorite Pizza!",
+            "coordinates": {
+                "x": 100,
+                "y": 30
+            },
+            "style": {
+                "fontSize": "30px",
+                "color": "#333",
+                "position": "absolute"
+            }
+        },
+        {
+            "type": "dropdown",
+            "id": "pizzaType",
+            "text": "Select Pizza:",
+            "options": [
+                "Margherita",
+                "Pepperoni",
+                "Veggie",
+                "BBQ Chicken"
+            ],
+            "coordinates": {
+                "x": 100,
+                "y": 80
+            },
+            "style": {
+                "fontSize": "20px",
+                "position": "absolute"
+            }
+        },
+        {
+            "type": "dropdown",
+            "id": "pizzaSize",
+            "text": "Select Size:",
+            "options": [
+                "Small",
+                "Medium",
+                "Large"
+            ],
+            "coordinates": {
+                "x": 100,
+                "y": 140
+            },
+            "style": {
+                "fontSize": "20px",
+                "position": "absolute"
+            }
+        },
+        {
+            "type": "checkbox",
+            "text": "Choose Toppings:",
+            "options": [
+                "Extra Cheese",
+                "Olives",
+                "Peppers",
+                "Onions"
+            ],
+            "coordinates": {
+                "x": 100,
+                "y": 200
+            },
+            "style": {
+                "fontSize": "20px",
+                "position": "absolute"
+            }
+        },
+        {
+            "type": "button",
+            "id": "buyButton",
+            "text": "Buy Now",
+            "coordinates": {
+                "x": 170,
+                "y": 450
+            },
+            "style": {
+                "fontSize": "25px",
+                "backgroundColor": "#4CAF50",
+                "color": "white",
+                "position": "absolute",
+                "border": "none",
+                "padding": "10px 20px",
+                "cursor": "pointer"
+            }
+        }
+    ]
+}

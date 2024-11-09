@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Pizza Ordering Page</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 3840px;
+            height: 2160px;
+        }
+
+        .header {
+            position: absolute;
+            left: 100px;
+            top: 30px;
+            font-size: 30px;
+            color: #333;
+        }
+
+        .pizza-select {
+            position: absolute;
+            left: 100px;
+            top: 80px;
+            font-size: 20px;
+        }
+
+        .size-select {
+            position: absolute;
+            left: 100px;
+            top: 140px;
+            font-size: 20px;
+        }
+
+        .toppings {
+            position: absolute;
+            left: 100px;
+            top: 200px;
+            font-size: 20px;
+        }
+
+        .buy-button {
+            position: absolute;
+            left: 100px;
+            top: 300px;
+            font-size: 25px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 class="header">Order Your Favorite Pizza!</h1>
+
+    <div class="pizza-select">
+        <label>Select Pizza:</label>
+        <select id="pizzaType">
+            <option>Margherita</option>
+            <option>Pepperoni</option>
+            <option>Veggie</option>
+            <option>BBQ Chicken</option>
+        </select>
+    </div>
+
+    <div class="size-select">
+        <label>Select Size:</label>
+        <select id="pizzaSize">
+            <option>Small</option>
+            <option>Medium</option>
+            <option>Large</option>
+        </select>
+    </div>
+
+    <div class="toppings">
+        <label>Choose Toppings:</label><br>
+        <input type="checkbox" value="Extra Cheese"> Extra Cheese<br>
+        <input type="checkbox" value="Olives"> Olives<br>
+        <input type="checkbox" value="Peppers"> Peppers<br>
+        <input type="checkbox" value="Onions"> Onions
+    </div>
+
+    <button class="buy-button" id="buyButton">Buy Now</button>
+
+    <script>
+        document.getElementById('buyButton').addEventListener('click', function () {
+            const pizzaType = document.getElementById('pizzaType').value;
+            const pizzaSize = document.getElementById('pizzaSize').value;
+            const toppings = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value)
+                .join(', ');
+
+            alert(`Order Details:\nPizza: ${pizzaType}\nSize: ${pizzaSize}\nToppings: ${toppings || 'None'}`);
+        });
+    </script>
+</body>
+
+</html>
