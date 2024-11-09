@@ -1,177 +1,155 @@
-from typing import Optional, Tuple
-from datetime import datetime
-import base64
 import os
-import subprocess
-from pathlib import Path
-
-import numpy as np
-import cv2
-from PIL import Image, ImageDraw, ImageFont
+import time
 import pyautogui
-from openai import OpenAI
+import subprocess
+from PIL import Image
+import io
 from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-# Constants from .env file
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-SCREENSHOT_STEP = int(os.getenv('SCREENSHOT_STEP', '100'))
-FONT_SIZE = int(os.getenv('FONT_SIZE', '12'))
-ARROW_LENGTH = int(os.getenv('ARROW_LENGTH', '20'))
-ARROW_SIZE = int(os.getenv('ARROW_SIZE', '5'))
-OUTPUT_DIR = os.getenv('OUTPUT_DIR', 'screenshots')
+import base64
 
 class ScreenshotProcessor:
-    def __init__(self):
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+    def __init__(self, client):
+        print("Initializing...")
+        self.client = client
 
-    def encode_image(self, image_path: str) -> str:
-        """
-        Encode image to base64 string.
+        # Configure PyAutoGUI settings
+        pyautogui.PAUSE = 1
+        pyautogui.FAILSAFE = True
         
-        Args:
-            image_path: Path to image file
-            
-        Returns:
-            Base64 encoded string of image
-        """
-        with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
-
-    def add_coordinate_labels(self, image_array: np.ndarray, step: int = SCREENSHOT_STEP) -> Image:
-        """
-        Add coordinate labels with arrows to an image.
-        
-        Args:
-            image_array: Numpy array of screenshot
-            step: Spacing between labeled points
-            
-        Returns:
-            PIL Image with coordinates labeled
-        """
-        image = Image.fromarray(image_array)
-        draw = ImageDraw.Draw(image)
-        
-        try:
-            font = ImageFont.truetype("arial.ttf", FONT_SIZE)
-        except:
-            font = ImageFont.load_default()
-        
-        height, width = image_array.shape[:2]
-        
-        for y in range(0, height, step):
-            for x in range(0, width, step):
-                end_x = x + 15
-                end_y = y - 15
-                
-                # Draw arrow
-                draw.line([(end_x, end_y), (x, y)], fill=(255, 0, 0), width=1)
-                draw.polygon([
-                    (x, y),
-                    (x + ARROW_SIZE, y - ARROW_SIZE),
-                    (x - ARROW_SIZE, y - ARROW_SIZE)
-                ], fill=(255, 0, 0))
-                
-                # Add coordinate text
-                text = f"({x}, {y})"
-                text_bbox = draw.textbbox((end_x, end_y), text, font=font)
-                
-                draw.rectangle([
-                    (text_bbox[0]-2, text_bbox[1]-2),
-                    (text_bbox[2]+2, text_bbox[3]+2)
-                ], fill=(255, 255, 255))
-                
-                draw.text((end_x, end_y), text, fill=(0, 0, 0), font=font)
-        
-        return image
-
-    def get_python_code_to_execute_pyautogui(self, image_path: str, instruction: str) -> str:
-        """
-        Get Python code from GPT-4 to execute user's instruction using PyAutoGUI.
-        
-        Args:
-            image_path: Path to labeled screenshot
-            instruction: User's instruction
-            
-        Returns:
-            Python code string to execute
-        """
-        prompt = f"""
-        The user's instruction is: {instruction}
-        Based on this pixel labeled image of a computer screen, write PyAutoGUI code that executes the user's instruction.
-        Return only the executable Python code without any markdown formatting.
-        """
-        
-        base64_image = self.encode_image(image_path)
-        
-        response = self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{
-                "role": "user",
-                "content": [{
-                    "type": "text",
-                    "text": prompt,
-                }, {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{base64_image}"
-                    },
-                }],
-            }]
-        )
-        
-        return response.choices[0].message.content
-
-    def process_screenshot(self, instruction: str) -> Tuple[str, str]:
-        """
-        Process screenshot and generate automation code.
-        
-        Args:
-            instruction: User's instruction
-            
-        Returns:
-            Tuple of (screenshot path, generated python code)
-        """
-        print("Taking screenshot...")
+    def take_screenshot(self) -> str:
+        """Take a screenshot and save it temporarily."""
         screenshot = pyautogui.screenshot()
-        image_array = np.array(screenshot)
         
-        print("Adding coordinate labels...")
-        labeled_image = self.add_coordinate_labels(image_array)
+        # Save screenshot to bytes
+        img_byte_arr = io.BytesIO()
+        screenshot.save(img_byte_arr, format='PNG')
+        img_byte_arr = img_byte_arr.getvalue()
         
-        # Create output directory if it doesn't exist
-        Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+        # Save to file temporarily
+        temp_path = "temp_screenshot.png"
+        screenshot.save(temp_path)
         
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = Path(OUTPUT_DIR) / f"labeled_screenshot_{timestamp}.png"
-        labeled_image.save(output_path)
-        print(f"Labeled screenshot saved to: {output_path}")
-        
-        print("Generating automation code...")
-        generated_code = self.get_python_code_to_execute_pyautogui(str(output_path), instruction)
-        
-        return str(output_path), generated_code
+        return temp_path
+
+    def generate_automation_code(self, screenshot_path: str, instruction: str) -> str:
+        """Generate automation code using OpenAI's API."""
+        try:
+            # Read the image file
+            with open(screenshot_path, "rb") as image_file:
+                image_data = image_file.read()
+            
+            # Create messages for the API
+            messages = [
+                {
+                    "role": "system",
+                    "content": """You are an expert Python automation engineer specializing in PyAutoGUI. 
+                    Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
+                    Use pyautogui functions and include necessary imports. Focus on accurate coordinates and reliable automation sequences. 
+                    Return only executable Python code without any explanation."""
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Generate PyAutoGUI code to: {instruction}"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{base64.b64encode(image_data).decode('utf-8')}"
+                            }
+                        }
+                    ]
+                }
+            ]
+
+            # Make the API call
+            # try:
+            response = self.client.chat.completions.create(
+                model=os.getenv("VISION_MODEL"),
+                messages=messages,
+                max_tokens=4000,
+                temperature=0.0,
+            )
+            # except openai.APIError as e:
+            #     print(f"OpenAI API returned an API Error: {e}")
+            # except openai.APIConnectionError as e:
+            #     print(f"Failed to connect to OpenAI API: {e}")
+            # except openai.APITimeoutError as e:
+            #     print(f"OpenAI API request timed out: {e}")
+
+            return response.choices[0].message.content
+
+        except Exception as e:
+            print(f"Error generating automation code: {str(e)}")
+            return None
+
+    def process_screenshot(self, instruction: str) -> tuple:
+        """Process screenshot and generate automation code."""
+        try:
+            # Take screenshot
+            screenshot_path = self.take_screenshot()
+            
+            # Generate automation code
+            generated_code = self.generate_automation_code(screenshot_path, instruction)
+            
+            return screenshot_path, generated_code
+            
+        except Exception as e:
+            print(f"Error processing screenshot: {str(e)}")
+            return None, None
+
+def clean_code(code: str) -> str:
+    """Remove markdown formatting and clean the code for execution."""
+    # Remove markdown code blocks
+    code = code.replace("```python", "").replace("```", "")
+    # Remove leading/trailing whitespace
+    code = code.strip()
+    return code
 
 def main():
     """Main execution function."""
-    processor = ScreenshotProcessor()
-    
-    instruction = input("What action would you like to automate? ")
-    
-    screenshot_path, generated_code = processor.process_screenshot(instruction)
-    
-    print("\nGenerated Python code:")
-    print(generated_code)
-    
-    confirmation = input("\nWould you like to execute this code? (yes/no): ")
-    
-    if confirmation.lower() == 'yes':
-        print("Executing automation...")
-        exec(generated_code)
-    else:
-        print("Execution cancelled.")
+    load_dotenv()  # Load environment variables from .env file
+    try:
+        if not os.getenv('OPENAI_API_KEY'):
+            print("Error: OPENAI_API_KEY not found in environment variables")
+            return
+        
+        from openai import OpenAI
+        #print("OpenAI api key = ", os.getenv('OPENAI_API_KEY'))
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+            
+        processor = ScreenshotProcessor(client)
+        
+        instruction = input("What action would you like to automate? ")
+        
+        screenshot_path, generated_code = processor.process_screenshot(instruction)
+        
+        if not generated_code:
+            print("Failed to generate automation code")
+            return
+            
+        # Clean the code before displaying and executing
+        cleaned_code = clean_code(generated_code)
+        
+        print("\nGenerated Python code:")
+        print(cleaned_code)
+        
+        confirmation = input("\nWould you like to execute this code? (yes/no): ")
+        
+        if confirmation.lower() == 'yes':
+            print("Executing automation...")
+            try:
+                # Execute the cleaned code
+                exec(cleaned_code)
+            except Exception as e:
+                print(f"Error executing automation: {str(e)}")
+        else:
+            print("Execution cancelled.")
+            
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
     main()
