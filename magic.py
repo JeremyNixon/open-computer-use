@@ -107,7 +107,7 @@ class ScreenshotProcessor:
         base64_image = self.encode_image(image_path)
         
         response = self.client.chat.completions.create(
-            model="gpt-4-vision-preview",
+            model="gpt-4o",
             messages=[{
                 "role": "user",
                 "content": [{
