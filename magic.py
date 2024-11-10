@@ -36,8 +36,9 @@ def add_coordinate_labels(image_array, step=50):
     # Create coordinate points grid
     for y in range(0, height, step):
         for x in range(0, width, step):
+
             # Draw arrow
-            arrow_length = 10
+            arrow_length = os.getenv('ARROW_LENGTH', 'default_value')
             arrow_color = (255, 0, 0)  # Red color for visibility
             
             # Calculate arrow endpoint (offset from point for visibility)
@@ -48,7 +49,8 @@ def add_coordinate_labels(image_array, step=50):
             draw.line([(end_x, end_y), (x, y)], fill=arrow_color, width=1)
             
             # Draw arrowhead
-            arrow_size = 5
+            arrow_size = int(os.getenv('ARROW_SIZE', 'default_value'))
+
             draw.polygon([
                 (x, y),
                 (x + arrow_size, y - arrow_size),
