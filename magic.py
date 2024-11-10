@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import base64
 import numpy as np
 import random
+import re
 
 def add_coordinate_labels(image_array, num_points=25):
     """
@@ -94,29 +95,33 @@ def add_coordinate_labels(image_array, num_points=25):
     
     return image
 
-def convert_coordinates_to_mac_os_4k_for_pyautogui(x, y):
+def capture_region_around_point(x: int, y: int) -> tuple:
     """
-    Convert coordinates from Mac OS 4K resolution to PyAutoGUI coordinates.
+    Captures a 150x150 pixel region centered around the given coordinates.
     
     Args:
-        x: x-coordinate in Mac OS 4K resolution
-        y: y-coordinate in Mac OS 4K resolution
+        x: x-coordinate of center point
+        y: y-coordinate of center point
     
     Returns:
-        Tuple of converted PyAutoGUI coordinates
+        Tuple of (PIL Image, numpy array) of the captured region
     """
-    # Mac OS 4K resolution
-    mac_os_4k_width = 3840
-    mac_os_4k_height = 2160
+    # Get screen size
+    screen_width, screen_height = pyautogui.size()
     
-    # PyAutoGUI default resolution
-    pyautogui_width, pyautogui_height = pyautogui.size()
+    # Calculate region bounds (75 pixels in each direction)
+    left = max(0, x - 75)
+    top = max(0, y - 75)
+    right = min(screen_width, x + 75)
+    bottom = min(screen_height, y + 75)
     
-    # Convert coordinates to PyAutoGUI resolution
-    x_new = x * pyautogui_width / mac_os_4k_width
-    y_new = y * pyautogui_height / mac_os_4k_height
+    # Take screenshot of region
+    screenshot = pyautogui.screenshot(region=(left, top, right-left, bottom-top))
     
-    return x_new, y_new
+    # Convert to numpy array
+    screenshot_array = np.array(screenshot)
+    
+    return screenshot, screenshot_array
 
 class ScreenshotProcessor:
     def __init__(self, client):
@@ -127,12 +132,15 @@ class ScreenshotProcessor:
         pyautogui.PAUSE = 1
         pyautogui.FAILSAFE = True
         
-    def take_screenshot(self) -> str:
+    def take_screenshot(self, region=None) -> str:
         """Take a screenshot and save it temporarily."""
         # Create screenshots directory if it doesn't exist
         os.makedirs("screenshots", exist_ok=True)
         
-        screenshot = pyautogui.screenshot()
+        if region is not None:
+            screenshot = pyautogui.screenshot(region=region)
+        else:
+            screenshot = pyautogui.screenshot()
         
         # Convert PIL Image to numpy array
         screenshot_array = np.array(screenshot)
@@ -152,27 +160,35 @@ class ScreenshotProcessor:
         
         return temp_path
 
-    def generate_automation_code(self, screenshot_path: str, instruction: str) -> str:
-        """Generate automation code using OpenAI's API."""
+    def generate_automation_code(self, screenshot_path: str, instruction: str) -> tuple:
+        """
+        Generate automation code using OpenAI's API and extract coordinates.
+        Returns both the generated code and the coordinates chosen.
+        """
         try:
             # Read the image file
             with open(screenshot_path, "rb") as image_file:
                 image_data = image_file.read()
-
             
             # Create messages for the API
             messages = [
                 {
                     "role": "system",
                     "content": """You are an expert Python automation engineer specializing in PyAutoGUI. 
-                    Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
-                    The code should be properly formatted without indentation at the root level.
-                    Include necessary imports and use time.sleep() for proper timing.
-                    Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
-                    Calculate an interpolation using the coordinates so that it is as centered in the ui element as possible.
-                    Return only executable Python code at the beginning and a quick explanation of why the coordinate was chosen 
-                    at the end.
-                    Label the quick explanation with the keyword Explanation. 
+                    Generate precise Python code to automate user interface interactions based on screenshots and instructions.
+                    
+                    IMPORTANT COORDINATE SELECTION RULES:
+                    1. ONLY use coordinates that are explicitly labeled in the screenshot
+                    2. Choose the labeled coordinate point that is CLOSEST to the UI element
+                    3. Do NOT interpolate or calculate new coordinates
+                    4. Do NOT modify or adjust the coordinates in any way
+                    
+                    Your response must:
+                    1. Start with the exact coordinates chosen in format: COORDINATES: (x,y)
+                    2. Follow with executable Python code
+                    3. Include necessary imports and time.sleep() for timing
+                    4. Use the exact coordinates from step 1
+                    5. End with an explanation labeled with 'Explanation' that describes why these coordinates were chosen
                     """
                 },
                 {
@@ -200,71 +216,55 @@ class ScreenshotProcessor:
                 temperature=0.0,
             )
 
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            
+            # Extract coordinates from response
+            coord_match = re.search(r'COORDINATES: \((\d+),(\d+)\)', content)
+            if coord_match:
+                x, y = map(int, coord_match.groups())
+                # Remove the coordinates line from the content
+                content = re.sub(r'COORDINATES: \(\d+,\d+\)\n*', '', content)
+                return content, (x, y)
+            else:
+                return content, None
 
         except Exception as e:
             print(f"Error generating automation code: {str(e)}")
-            return None
+            return None, None
 
     def process_screenshot_and_generate_code(self, instruction: str) -> tuple:
-        """Process screenshot and generate automation code."""
+        """Process screenshot and generate automation code with a two-step approach."""
         try:
-            # Take screenshot
+            # Take initial full screenshot
             screenshot_path = self.take_screenshot()
             
-            # Generate automation code
-            generated_code = self.generate_automation_code(screenshot_path, instruction)
+            # Generate initial code and get coordinates
+            generated_code, coords = self.generate_automation_code(screenshot_path, instruction)
+            
+            if coords is None:
+                return screenshot_path, generated_code
+            
+            # Take a closer screenshot around the chosen coordinates
+            x, y = coords
+            closer_screenshot, closer_array = capture_region_around_point(x, y)
+            
+            # Save and label the closer screenshot
+            closer_path = self.take_screenshot(region=(x-75, y-75, 150, 150))
+            
+            # Generate new code with closer view
+            final_code, final_coords = self.generate_automation_code(closer_path, instruction)
+            
+            if final_coords is not None:
+                # Adjust coordinates relative to original position
+                final_x = x - 75 + final_coords[0]
+                final_y = y - 75 + final_coords[1]
+                return closer_path, final_code
             
             return screenshot_path, generated_code
             
         except Exception as e:
             print(f"Error processing screenshot: {str(e)}")
             return None, None
-    
-
-
-            
-def capture_region_around_point(x: int, y: int, size: int = 150) -> Image.Image:
-    """
-    Captures a square region of the screen centered around the given coordinates.
-    
-    Args:
-        x: The x-coordinate of the center point
-        y: The y-coordinate of the center point
-        size: The width/height of the square region to capture (default 150 pixels)
-    
-    Returns:
-        PIL Image containing the captured region
-    """
-    # Get screen size
-    screen_width, screen_height = pyautogui.size()
-    
-    # Calculate the region to capture
-    half_size = size // 2
-    left = max(0, x - half_size)
-    top = max(0, y - half_size)
-    right = min(screen_width, x + half_size)
-    bottom = min(screen_height, y + half_size)
-    
-    # Take screenshot of the entire screen
-    screenshot = pyautogui.screenshot()
-    
-    # Crop the region
-    region = screenshot.crop((left, top, right, bottom))
-    
-    # If the cropped region is smaller than size x size (due to screen edges),
-    # create a new image of the correct size with the region centered
-    if region.size != (size, size):
-        new_image = Image.new('RGB', (size, size), (0, 0, 0))  # Black background
-        paste_x = (size - region.size[0]) // 2 if x - half_size < 0 else 0
-        paste_y = (size - region.size[1]) // 2 if y - half_size < 0 else 0
-        new_image.paste(region, (paste_x, paste_y))
-        region = new_image
-    
-    return region
-
-
-
 
 def grab_explanation(code: str) -> str:
         """
@@ -284,7 +284,6 @@ def grab_explanation(code: str) -> str:
         
         # Return everything from 'Explanation' to the end
         return code[:explanation_index], code[explanation_index:]
-
 
 def clean_code(code: str) -> str:
     """Remove markdown formatting and clean the code for execution."""
@@ -330,7 +329,6 @@ def main():
         
         instruction = input("What action would you like to automate? ")
         
-        # Fixed: Changed process_screenshot to process_screenshot_and_generate_code
         screenshot_path, generated_code = processor.process_screenshot_and_generate_code(instruction)
         
         if not generated_code:
