@@ -159,11 +159,19 @@ class ScreenshotProcessor:
             
             # Create messages for the API
             OLD_SYSTEM_PROMPT = """You are an expert Python automation engineer specializing in PyAutoGUI. 
-                    Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
+                    Generate precise Python code to automate user interface interactions based on screenshots and instruction 
+                    
+                    <instruction>
+                    {instruction}
+                    </instruction>
+
                     The code should be properly formatted without indentation at the root level.
                     Include necessary imports and use time.sleep() for proper timing.
                     Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
-                    Return only executable Python code without any markdown formatting or explanations. Make sure your co-ordinates are accurate for mac retina 4k resolution, for example (960,600) should be (170,450)
+                    Return only executable Python code without any markdown formatting or explanations.
+                    The first generated click command (after the import statements) should be done at location (200, 200) to make the window active.
+                    Use typewrite function for dropdowns like pizza type and size.
+                    also remember to move mouse and click before typing in dropdowns.
                     """
             with open("pizza_page_ui_layout.json", "r") as f:
                 ui_layout = f.read()
@@ -175,10 +183,11 @@ class ScreenshotProcessor:
             Include necessary imports and use time.sleep() for proper timing. 
             Use pyautogui functions and focus on accurate coordinates from the labeled screenshot. 
             Return only executable Python code without any markdown formatting or explanations. 
+            The first generated click command (after the import statements) should be done at location (200, 200) to make the window active.
             Use typewrite function for dropdowns like pizza type and size.
+             also remember to move mouse and click before typing in dropdowns.
             Do not sleep, execute without delay but delay each execution for 2 seconds.  
             remember that the browser may not be the active window, so first click twice on the first item. 
-            also remember to move mouse and click before typing in dropdowns.
             The first generated click command (after the import statements) should be done at location (200, 200) to make the window active.
             The UI layout json is as follows:
             ```
@@ -189,7 +198,7 @@ class ScreenshotProcessor:
             messages = [
                 {
                     "role": "system",
-                    "content": JSON_SYSTEM_PROMPT,
+                    "content": OLD_SYSTEM_PROMPT,
                 },
                 {
                     "role": "user",
@@ -269,7 +278,15 @@ def main():
     
     # Create screenshots directory if it doesn't exist
     os.makedirs("screenshots", exist_ok=True)
-    
+    print("v3 - using grid image to get co-ordinates")
+    print(f"pyautogui SIZE: {pyautogui.size()}")
+    # SCREENSHOT_STEP
+    print(f"SCREENSHOT_STEP: {os.getenv('SCREENSHOT_STEP')}")
+    print(f"VISION_MODEL: {os.getenv('VISION_MODEL')}")
+    print(f"FONT_SIZE: {os.getenv('FONT_SIZE')}")
+    print(f"ARROW_LENGTH: {os.getenv('ARROW_LENGTH')}")
+    print(f"ARROW_SIZE: {os.getenv('ARROW_SIZE')}")
+    print(f"OUTPUT_DIR: {os.getenv('OUTPUT_DIR')}")
     try:
         if not os.getenv('OPENAI_API_KEY'):
             print("Error: OPENAI_API_KEY not found in environment variables")
