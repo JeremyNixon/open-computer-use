@@ -42,8 +42,8 @@ def add_coordinate_labels(image_array, step=50):
             arrow_color = (255, 0, 0)  # Red color for visibility
             
             # Calculate arrow endpoint (offset from point for visibility)
-            end_x = x + 15
-            end_y = y - 15
+            end_x = x - 10
+            end_y = y - 10
             
             # Draw arrow line
             draw.line([(end_x, end_y), (x, y)], fill=arrow_color, width=1)
@@ -126,8 +126,8 @@ class ScreenshotProcessor:
                     Generate precise Python code to automate user interface interactions based on the screenshot and instructions. 
                     The code should be properly formatted without indentation at the root level.
                     Include necessary imports and use time.sleep() for proper timing.
-                    Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
-                    Get the coordinates centered as close to the elements requested as possible.
+                    Use pyautogui functions and focus on fuzzy coordinates from the labeled screenshot.
+                    Use the labeled pixel points on the screenshot as reference and then adjust those coordinates to get as close to the UI elements that the user requests.
                     Return only executable Python code at the beginning and a quick explanation of why the coordinate was chosen 
                     at the end.
                     Label the quick explanation with the keyword Explanation. 
