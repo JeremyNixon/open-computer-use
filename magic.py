@@ -158,6 +158,7 @@ class ScreenshotProcessor:
             # Read the image file
             with open(screenshot_path, "rb") as image_file:
                 image_data = image_file.read()
+
             
             # Create messages for the API
             messages = [
@@ -219,6 +220,50 @@ class ScreenshotProcessor:
         except Exception as e:
             print(f"Error processing screenshot: {str(e)}")
             return None, None
+    
+
+
+            
+def capture_region_around_point(x: int, y: int, size: int = 150) -> Image.Image:
+    """
+    Captures a square region of the screen centered around the given coordinates.
+    
+    Args:
+        x: The x-coordinate of the center point
+        y: The y-coordinate of the center point
+        size: The width/height of the square region to capture (default 150 pixels)
+    
+    Returns:
+        PIL Image containing the captured region
+    """
+    # Get screen size
+    screen_width, screen_height = pyautogui.size()
+    
+    # Calculate the region to capture
+    half_size = size // 2
+    left = max(0, x - half_size)
+    top = max(0, y - half_size)
+    right = min(screen_width, x + half_size)
+    bottom = min(screen_height, y + half_size)
+    
+    # Take screenshot of the entire screen
+    screenshot = pyautogui.screenshot()
+    
+    # Crop the region
+    region = screenshot.crop((left, top, right, bottom))
+    
+    # If the cropped region is smaller than size x size (due to screen edges),
+    # create a new image of the correct size with the region centered
+    if region.size != (size, size):
+        new_image = Image.new('RGB', (size, size), (0, 0, 0))  # Black background
+        paste_x = (size - region.size[0]) // 2 if x - half_size < 0 else 0
+        paste_y = (size - region.size[1]) // 2 if y - half_size < 0 else 0
+        new_image.paste(region, (paste_x, paste_y))
+        region = new_image
+    
+    return region
+
+
 
 
 def grab_explanation(code: str) -> str:
