@@ -26,8 +26,8 @@
                 "BBQ Chicken"
             ],
             "coordinates": {
-                "x": 100,
-                "y": 80
+                "x": 261,
+                "y": 212
             },
             "style": {
                 "fontSize": "20px",
@@ -44,8 +44,8 @@
                 "Large"
             ],
             "coordinates": {
-                "x": 100,
-                "y": 140
+                "x": 237,
+                "y": 273
             },
             "style": {
                 "fontSize": "20px",
@@ -57,13 +57,26 @@
             "text": "Choose Toppings:",
             "options": [
                 "Extra Cheese",
-                "Olives",
                 "Peppers",
-                "Onions"
+                "Olives"
             ],
             "coordinates": {
                 "x": 100,
                 "y": 200
+            },
+            "Toppings": {
+                "Extra Cheese": {
+                    "x": 110,
+                    "y": 357
+                },
+                "Peppers": {
+                    "x": 110,
+                    "y": 383
+                },
+                "Olives": {
+                    "x": 110,
+                    "y": 405
+                }
             },
             "style": {
                 "fontSize": "20px",
