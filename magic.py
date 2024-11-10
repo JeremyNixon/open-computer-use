@@ -20,6 +20,7 @@ def add_coordinate_labels(image_array, step=50):
     Returns:
         PIL Image with coordinate labels and arrows
     """
+
     # Convert numpy array to PIL Image for drawing
     image = Image.fromarray(image_array)
     draw = ImageDraw.Draw(image)
@@ -89,8 +90,11 @@ class ScreenshotProcessor:
         # Convert PIL Image to numpy array
         screenshot_array = np.array(screenshot)
         
+        # Retrieve the SCREENSHOT_STEP environment variable
+        screenshot_step = os.getenv('SCREENSHOT_STEP', 'default_value')
+
         # Add coordinate labels
-        labeled_screenshot = add_coordinate_labels(screenshot_array)
+        labeled_screenshot = add_coordinate_labels(screenshot_array, int(screenshot_step))
         
         # Save screenshot to bytes
         img_byte_arr = io.BytesIO()
