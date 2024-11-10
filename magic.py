@@ -68,6 +68,30 @@ def add_coordinate_labels(image_array, step=50):
     
     return image
 
+
+def center_mouse_and_show_coordinates():
+    """
+    Centers the mouse on the screen and displays the coordinates like Cmd + Shift + 4.
+    Returns the center coordinates.
+    """
+    # Get screen size
+    screen_width, screen_height = pyautogui.size()
+    
+    # Calculate center coordinates
+    center_x = screen_width // 2
+    center_y = screen_height // 2
+    
+    # Move mouse to center
+    pyautogui.moveTo(center_x, center_y, duration=0.5)
+    
+    # Simulate the coordinate display behavior of Cmd + Shift + 4
+    # by drawing a small crosshair at the center
+    current_x, current_y = pyautogui.position()
+    pyautogui.hotkey("command", "shift", "4")
+    
+    # Return the center coordinates
+    return center_x, center_y
+
 def convert_coordinates_to_mac_os_4k_for_pyautogui(x, y):
     """
     Convert coordinates from Mac OS 4K resolution to PyAutoGUI coordinates.
@@ -134,21 +158,43 @@ class ScreenshotProcessor:
                 image_data = image_file.read()
             
             # Create messages for the API
-            messages = [
-                {
-                    "role": "system",
-                    "content": """You are an expert Python automation engineer specializing in PyAutoGUI. 
+            OLD_SYSTEM_PROMPT = """You are an expert Python automation engineer specializing in PyAutoGUI. 
                     Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
                     The code should be properly formatted without indentation at the root level.
                     Include necessary imports and use time.sleep() for proper timing.
                     Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
-                    Return only executable Python code without any markdown formatting or explanations. Make sure your co-ordinates are accurate for mac retina 4k resolution, for example (960,600) should be (170,450)"""
+                    Return only executable Python code without any markdown formatting or explanations. Make sure your co-ordinates are accurate for mac retina 4k resolution, for example (960,600) should be (170,450)
+                    """
+            with open("pizza_page_ui_layout.json", "r") as f:
+                ui_layout = f.read()
+            print(ui_layout)
+            JSON_SYSTEM_PROMPT = f"""You are an expert Python automation engineer specializing in PyAutoGUI. Use the UI layout json which has x, y coordinates of all ui components to generate precise Python code to automate user interface interactions based on screenshots and instructions. 
+            The code should be properly formatted without indentation at the root level. 
+            Include necessary imports and use time.sleep() for proper timing. 
+            Use pyautogui functions and focus on accurate coordinates from the labeled screenshot. 
+            Return only executable Python code without any markdown formatting or explanations. 
+            Use typewrite function for dropdowns like pizza type and size.
+            Do not sleep, execute without delay but delay each execution for 2 seconds.  
+            remember that the browser may not be the active window, so first click twice on the first item. 
+            also remember to move mouse and click before typing in dropdowns.
+            
+            The UI layout json is as follows:
+            ```
+            {ui_layout}
+            ```
+            
+            """
+            messages = [
+                {
+                    "role": "system",
+                    "content": JSON_SYSTEM_PROMPT,
                 },
                 {
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
+                            #"text": f"Generate PyAutoGUI code to: {instruction}"
                             "text": f"Generate PyAutoGUI code to: {instruction}"
                         },
                         {
