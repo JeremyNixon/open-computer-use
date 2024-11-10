@@ -68,30 +68,6 @@ def add_coordinate_labels(image_array, step=50):
     
     return image
 
-
-def center_mouse_and_show_coordinates():
-    """
-    Centers the mouse on the screen and displays the coordinates like Cmd + Shift + 4.
-    Returns the center coordinates.
-    """
-    # Get screen size
-    screen_width, screen_height = pyautogui.size()
-    
-    # Calculate center coordinates
-    center_x = screen_width // 2
-    center_y = screen_height // 2
-    
-    # Move mouse to center
-    pyautogui.moveTo(center_x, center_y, duration=0.5)
-    
-    # Simulate the coordinate display behavior of Cmd + Shift + 4
-    # by drawing a small crosshair at the center
-    current_x, current_y = pyautogui.position()
-    pyautogui.hotkey("command", "shift", "4")
-    
-    # Return the center coordinates
-    return center_x, center_y
-
 def convert_coordinates_to_mac_os_4k_for_pyautogui(x, y):
     """
     Convert coordinates from Mac OS 4K resolution to PyAutoGUI coordinates.
@@ -158,54 +134,25 @@ class ScreenshotProcessor:
                 image_data = image_file.read()
             
             # Create messages for the API
-            OLD_SYSTEM_PROMPT = """You are an expert Python automation engineer specializing in PyAutoGUI. 
-                    Generate precise Python code to automate user interface interactions based on screenshots and instruction 
-                    
-                    <instruction>
-                    {instruction}
-                    </instruction>
-
-                    The code should be properly formatted without indentation at the root level.
-                    Include necessary imports and use time.sleep() for proper timing.
-                    Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
-                    Return only executable Python code without any markdown formatting or explanations.
-                    The first generated click command (after the import statements) should be done at location (200, 200) to make the window active.
-                    Use typewrite function for dropdowns like pizza type and size.
-                    also remember to move mouse and click before typing in dropdowns.
-                    """
-            with open("pizza_page_ui_layout.json", "r") as f:
-                ui_layout = f.read()
-            print(ui_layout)
-            JSON_SYSTEM_PROMPT = f"""You are an expert Python automation engineer specializing in PyAutoGUI. 
-            Use the UI layout json which has x, y coordinates of all ui components to generate precise Python code to automate user interface 
-            interactions based on screenshots and instructions. 
-            The code should be properly formatted without indentation at the root level. 
-            Include necessary imports and use time.sleep() for proper timing. 
-            Use pyautogui functions and focus on accurate coordinates from the labeled screenshot. 
-            Return only executable Python code without any markdown formatting or explanations. 
-            The first generated click command (after the import statements) should be done at location (200, 200) to make the window active.
-            Use typewrite function for dropdowns like pizza type and size.
-             also remember to move mouse and click before typing in dropdowns.
-            Do not sleep, execute without delay but delay each execution for 2 seconds.  
-            remember that the browser may not be the active window, so first click twice on the first item. 
-            The first generated click command (after the import statements) should be done at location (200, 200) to make the window active.
-            The UI layout json is as follows:
-            ```
-            {ui_layout}
-            ```
-            
-            """
             messages = [
                 {
                     "role": "system",
-                    "content": OLD_SYSTEM_PROMPT,
+                    "content": """You are an expert Python automation engineer specializing in PyAutoGUI. 
+                    Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
+                    The code should be properly formatted without indentation at the root level.
+                    Include necessary imports and use time.sleep() for proper timing.
+                    Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
+                    Return only executable Python code at the beginning and a quick explanation of why the coordinate was chosen 
+                    at the end.
+                    Label the quick explanation with the keyword Explanation. 
+                    Make sure your co-ordinates are accurate for mac retina 4k resolution, 
+                    for example (960,600) should be (170,450)"""
                 },
                 {
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
-                            #"text": f"Generate PyAutoGUI code to: {instruction}"
                             "text": f"Generate PyAutoGUI code to: {instruction}"
                         },
                         {
@@ -247,6 +194,27 @@ class ScreenshotProcessor:
             print(f"Error processing screenshot: {str(e)}")
             return None, None
 
+
+def grab_explanation(code: str) -> str:
+        """
+        Extracts text from the keyword 'Explanation' to the end of the string.
+        
+        Args:
+            code: Input string that may contain an explanation
+            
+        Returns:
+            The extracted explanation text, or empty string if no explanation found
+        """
+        if "Explanation" not in code:
+            return ""
+        
+        # Find the index where 'Explanation' starts
+        explanation_index = code.find("Explanation")
+        
+        # Return everything from 'Explanation' to the end
+        return code[:explanation_index], code[explanation_index:]
+
+
 def clean_code(code: str) -> str:
     """Remove markdown formatting and clean the code for execution."""
     # Remove markdown code blocks
@@ -278,15 +246,7 @@ def main():
     
     # Create screenshots directory if it doesn't exist
     os.makedirs("screenshots", exist_ok=True)
-    print("v3 - using grid image to get co-ordinates")
-    print(f"pyautogui SIZE: {pyautogui.size()}")
-    # SCREENSHOT_STEP
-    print(f"SCREENSHOT_STEP: {os.getenv('SCREENSHOT_STEP')}")
-    print(f"VISION_MODEL: {os.getenv('VISION_MODEL')}")
-    print(f"FONT_SIZE: {os.getenv('FONT_SIZE')}")
-    print(f"ARROW_LENGTH: {os.getenv('ARROW_LENGTH')}")
-    print(f"ARROW_SIZE: {os.getenv('ARROW_SIZE')}")
-    print(f"OUTPUT_DIR: {os.getenv('OUTPUT_DIR')}")
+    
     try:
         if not os.getenv('OPENAI_API_KEY'):
             print("Error: OPENAI_API_KEY not found in environment variables")
@@ -306,8 +266,12 @@ def main():
             print("Failed to generate automation code")
             return
             
+        code, explanation = grab_explanation(generated_code)
+
+        print(explanation)
+
         # Clean the code before displaying and executing
-        cleaned_code = clean_code(generated_code)
+        cleaned_code = clean_code(code)
         
         print("\nGenerated Python code:")
         print(cleaned_code)
