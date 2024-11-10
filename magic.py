@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import base64
 import numpy as np
 
+
 def add_coordinate_labels(image_array, step=50):
     """
     Adds coordinate labels with arrows to an image for pixel positions.
@@ -35,7 +36,7 @@ def add_coordinate_labels(image_array, step=50):
     for y in range(0, height, step):
         for x in range(0, width, step):
             # Draw arrow
-            arrow_length = 20
+            arrow_length = 10
             arrow_color = (255, 0, 0)  # Red color for visibility
             
             # Calculate arrow endpoint (offset from point for visibility)
@@ -68,29 +69,6 @@ def add_coordinate_labels(image_array, step=50):
     
     return image
 
-def convert_coordinates_to_mac_os_4k_for_pyautogui(x, y):
-    """
-    Convert coordinates from Mac OS 4K resolution to PyAutoGUI coordinates.
-    
-    Args:
-        x: x-coordinate in Mac OS 4K resolution
-        y: y-coordinate in Mac OS 4K resolution
-    
-    Returns:
-        Tuple of converted PyAutoGUI coordinates
-    """
-    # Mac OS 4K resolution
-    mac_os_4k_width = 3840
-    mac_os_4k_height = 2160
-    
-    # PyAutoGUI default resolution
-    pyautogui_width, pyautogui_height = pyautogui.size()
-    
-    # Convert coordinates to PyAutoGUI resolution
-    x_new = x * pyautogui_width / mac_os_4k_width
-    y_new = y * pyautogui_height / mac_os_4k_height
-    
-    return x_new, y_new
 
 class ScreenshotProcessor:
     def __init__(self, client):
@@ -138,15 +116,16 @@ class ScreenshotProcessor:
                 {
                     "role": "system",
                     "content": """You are an expert Python automation engineer specializing in PyAutoGUI. 
-                    Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
+                    Take a very close look at the screenshot which has labeled points.
+                    Generate precise Python code to automate user interface interactions based on the screenshot and instructions. 
                     The code should be properly formatted without indentation at the root level.
                     Include necessary imports and use time.sleep() for proper timing.
                     Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
+                    Get the coordinates centered as close to the elements requested as possible.
                     Return only executable Python code at the beginning and a quick explanation of why the coordinate was chosen 
                     at the end.
                     Label the quick explanation with the keyword Explanation. 
-                    Make sure your co-ordinates are accurate for mac retina 4k resolution, 
-                    for example (960,600) should be (170,450)"""
+                    """
                 },
                 {
                     "role": "user",
