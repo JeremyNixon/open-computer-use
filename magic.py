@@ -168,7 +168,9 @@ class ScreenshotProcessor:
             with open("pizza_page_ui_layout.json", "r") as f:
                 ui_layout = f.read()
             print(ui_layout)
-            JSON_SYSTEM_PROMPT = f"""You are an expert Python automation engineer specializing in PyAutoGUI. Use the UI layout json which has x, y coordinates of all ui components to generate precise Python code to automate user interface interactions based on screenshots and instructions. 
+            JSON_SYSTEM_PROMPT = f"""You are an expert Python automation engineer specializing in PyAutoGUI. 
+            Use the UI layout json which has x, y coordinates of all ui components to generate precise Python code to automate user interface 
+            interactions based on screenshots and instructions. 
             The code should be properly formatted without indentation at the root level. 
             Include necessary imports and use time.sleep() for proper timing. 
             Use pyautogui functions and focus on accurate coordinates from the labeled screenshot. 
@@ -177,7 +179,7 @@ class ScreenshotProcessor:
             Do not sleep, execute without delay but delay each execution for 2 seconds.  
             remember that the browser may not be the active window, so first click twice on the first item. 
             also remember to move mouse and click before typing in dropdowns.
-            
+            The first generated click command (after the import statements) should be done at location (200, 200) to make the window active.
             The UI layout json is as follows:
             ```
             {ui_layout}
