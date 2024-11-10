@@ -232,6 +232,45 @@ class ScreenshotProcessor:
             print(f"Error generating automation code: {str(e)}")
             return None, None
 
+    def clean_code_chat(self, input_str: str) -> str:
+        """
+        Makes an API call that returns the same input string.
+        Similar to generate_automation_code but simplified.
+        
+        Args:
+            input_str: String to echo back
+            
+        Returns:
+            The same string from the API response
+        """
+        try:
+ 
+            # Create messages for the API
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are an expert Python programmer. Remove any non-executable Python code from the user input."
+                },
+                {
+                    "role": "user",
+                    "content": input_str
+                }
+            ]
+
+            # Make the API call
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                max_tokens=1000,
+                temperature=0.0,
+            )
+
+            return response.choices[0].message.content
+
+        except Exception as e:
+            print(f"Error in API call: {str(e)}")
+            return None
+
     def process_screenshot_and_generate_code(self, instruction: str) -> tuple:
         """Process screenshot and generate automation code with a two-step approach."""
         try:
@@ -339,8 +378,10 @@ def main():
 
         print(explanation)
 
+        code_final = processor.clean_code_chat(code)
+
         # Clean the code before displaying and executing
-        cleaned_code = clean_code(code)
+        cleaned_code = clean_code(code_final)
         
         print("\nGenerated Python code:")
         print(cleaned_code)
