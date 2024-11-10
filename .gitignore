@@ -1,10 +1,18 @@
-# Byte-compiled / optimized / DLL files
+# Python
+*.pyc
+.DS_Store
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# C extensions
-*.so
+# Environment variables
+.env
 
 # Distribution / packaging
 .Python
@@ -24,7 +32,6 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -70,7 +77,6 @@ instance/
 
 # Sphinx documentation
 docs/_build/
-docsrc/_build/
 
 # PyBuilder
 target/
@@ -87,6 +93,7 @@ ipython_config.py
 
 # celery beat schedule file
 celerybeat-schedule
+celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
@@ -102,7 +109,7 @@ venv.bak/
 
 # Spyder project settings
 .spyderproject
-.spyderworkspace
+.spyproject
 
 # Rope project settings
 .ropeproject
@@ -117,9 +124,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
