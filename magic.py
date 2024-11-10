@@ -7,20 +7,20 @@ import io
 from dotenv import load_dotenv
 import base64
 import numpy as np
+import random
 
-
-def add_coordinate_labels(image_array, step=50):
+def add_coordinate_labels(image_array, num_points=25):
     """
-    Adds coordinate labels with arrows to an image for pixel positions.
+    Adds coordinate labels with arrows to an image for random pixel positions on a 50x50 grid.
+    Always includes (0,0) coordinate.
     
     Args:
         image_array: numpy array of the image
-        step: spacing between labeled points (default 50 pixels)
+        num_points: number of random points to label (default 25)
     
     Returns:
         PIL Image with coordinate labels and arrows
     """
-
     # Convert numpy array to PIL Image for drawing
     image = Image.fromarray(image_array)
     draw = ImageDraw.Draw(image)
@@ -33,45 +33,90 @@ def add_coordinate_labels(image_array, step=50):
     
     height, width = image_array.shape[:2]
     
-    # Create coordinate points grid
-    for y in range(0, height, step):
-        for x in range(0, width, step):
-
-            # Draw arrow
-            arrow_length = os.getenv('ARROW_LENGTH', 'default_value')
-            arrow_color = (255, 0, 0)  # Red color for visibility
-            
-            # Calculate arrow endpoint (offset from point for visibility)
-            end_x = x - 10
-            end_y = y - 10
-            
-            # Draw arrow line
-            draw.line([(end_x, end_y), (x, y)], fill=arrow_color, width=1)
-            
-            # Draw arrowhead
-            arrow_size = int(os.getenv('ARROW_SIZE', 'default_value'))
-
-            draw.polygon([
-                (x, y),
-                (x + arrow_size, y - arrow_size),
-                (x - arrow_size, y - arrow_size)
-            ], fill=arrow_color)
-            
-            # Add coordinate text
-            text = f"({x}, {y})"
-            text_bbox = draw.textbbox((end_x, end_y), text, font=font)
-            
-            # Draw white background for text for better visibility
-            draw.rectangle([
-                (text_bbox[0]-2, text_bbox[1]-2),
-                (text_bbox[2]+2, text_bbox[3]+2)
-            ], fill=(255, 255, 255))
-            
-            # Draw coordinate text
-            draw.text((end_x, end_y), text, fill=(0, 0, 0), font=font)
+    # Calculate grid size
+    grid_step = 50
+    grid_width = width // grid_step
+    grid_height = height // grid_step
+    
+    # Generate random grid points
+    points = set()
+    # Always add (0,0)
+    points.add((0, 0))
+    
+    # Add random points
+    while len(points) < num_points + 1:  # +1 because we already added (0,0)
+        x = random.randint(0, grid_width) * grid_step
+        y = random.randint(0, grid_height) * grid_step
+        points.add((x, y))
+    
+    # Draw points and labels
+    arrow_color = (255, 0, 0)  # Red color for visibility
+    arrow_size = 5
+    
+    for x, y in points:
+        # Calculate arrow endpoint (offset from point for visibility)
+        end_x = x - 10
+        end_y = y - 10
+        
+        # Draw arrow line
+        draw.line([(end_x, end_y), (x, y)], fill=arrow_color, width=1)
+        
+        # Draw arrowhead
+        draw.polygon([
+            (x, y),
+            (x + arrow_size, y - arrow_size),
+            (x - arrow_size, y - arrow_size)
+        ], fill=arrow_color)
+        
+        # Add coordinate text
+        text = f"({x}, {y})"
+        text_bbox = draw.textbbox((end_x, end_y), text, font=font)
+        
+        # Draw white background for text for better visibility
+        draw.rectangle([
+            (text_bbox[0]-2, text_bbox[1]-2),
+            (text_bbox[2]+2, text_bbox[3]+2)
+        ], fill=(255, 255, 255))
+        
+        # Draw coordinate text
+        draw.text((end_x, end_y), text, fill=(0, 0, 0), font=font)
+    
+    # Draw light gray grid lines
+    grid_color = (200, 200, 200)  # Light gray
+    
+    # Vertical lines
+    for x in range(0, width, grid_step):
+        draw.line([(x, 0), (x, height)], fill=grid_color, width=1)
+    
+    # Horizontal lines
+    for y in range(0, height, grid_step):
+        draw.line([(0, y), (width, y)], fill=grid_color, width=1)
     
     return image
 
+def convert_coordinates_to_mac_os_4k_for_pyautogui(x, y):
+    """
+    Convert coordinates from Mac OS 4K resolution to PyAutoGUI coordinates.
+    
+    Args:
+        x: x-coordinate in Mac OS 4K resolution
+        y: y-coordinate in Mac OS 4K resolution
+    
+    Returns:
+        Tuple of converted PyAutoGUI coordinates
+    """
+    # Mac OS 4K resolution
+    mac_os_4k_width = 3840
+    mac_os_4k_height = 2160
+    
+    # PyAutoGUI default resolution
+    pyautogui_width, pyautogui_height = pyautogui.size()
+    
+    # Convert coordinates to PyAutoGUI resolution
+    x_new = x * pyautogui_width / mac_os_4k_width
+    y_new = y * pyautogui_height / mac_os_4k_height
+    
+    return x_new, y_new
 
 class ScreenshotProcessor:
     def __init__(self, client):
@@ -92,11 +137,8 @@ class ScreenshotProcessor:
         # Convert PIL Image to numpy array
         screenshot_array = np.array(screenshot)
         
-        # Retrieve the SCREENSHOT_STEP environment variable
-        screenshot_step = os.getenv('SCREENSHOT_STEP', 'default_value')
-
         # Add coordinate labels
-        labeled_screenshot = add_coordinate_labels(screenshot_array, int(screenshot_step))
+        labeled_screenshot = add_coordinate_labels(screenshot_array)
         
         # Save screenshot to bytes
         img_byte_arr = io.BytesIO()
@@ -122,12 +164,11 @@ class ScreenshotProcessor:
                 {
                     "role": "system",
                     "content": """You are an expert Python automation engineer specializing in PyAutoGUI. 
-                    Take a very close look at the screenshot which has labeled points.
-                    Generate precise Python code to automate user interface interactions based on the screenshot and instructions. 
+                    Generate precise Python code to automate user interface interactions based on screenshots and instructions. 
                     The code should be properly formatted without indentation at the root level.
                     Include necessary imports and use time.sleep() for proper timing.
-                    Use pyautogui functions and focus on fuzzy coordinates from the labeled screenshot.
-                    Use the labeled pixel points on the screenshot as reference and then adjust those coordinates to get as close to the UI elements that the user requests.
+                    Use pyautogui functions and focus on accurate coordinates from the labeled screenshot.
+                    Calculate an interpolation using the coordinates so that it is as centered in the ui element as possible.
                     Return only executable Python code at the beginning and a quick explanation of why the coordinate was chosen 
                     at the end.
                     Label the quick explanation with the keyword Explanation. 
