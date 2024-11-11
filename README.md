@@ -35,7 +35,6 @@ This project demonstrates an advanced AI-powered UI automation agent 🎉 levera
 ## 📋 Prerequisites
 
 - **🐍 Python 3**: Ensure Python 3 is installed. Tested on version 3.12.7.
-- **🐳 Docker and Docker Compose**: Ensure both are installed to run the application in a containerized environment.
 - **🔑 OpenAI API Key**: Necessary for connecting with GPT-4 Vision.
 
 ## 🚀 Quick Start
