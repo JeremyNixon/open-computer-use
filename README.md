@@ -30,7 +30,7 @@ This project demonstrates an advanced AI-powered UI automation agent 🎉 levera
 - `config/`: ⚙️ Configurable parameters for task behavior, retries, and logging.
 - `.env`: 🔑 Environment variables file for API keys and sensitive information. An example .env.example is provided.
 - `Dockerfile`: 🐳 Docker configuration for easy deployment and environment consistency.
-- `docker-compose.yml`: Docker Compose configuration to streamline setup.
+- `docker-compose.yml`: Bash script to streamline setup.
 
 ## 📋 Prerequisites
 
@@ -43,9 +43,9 @@ This project demonstrates an advanced AI-powered UI automation agent 🎉 levera
    - Open the `.env` file and replace `your_openai_api_key` with your OpenAI API key.
 
 2. **Run the Application**:
-   - Build and run the application with Docker:
+   - Build and run the application:
      ```bash
-     docker-compose up
+     sh setup_project.sh
      ```
 
 3. **Define Goals**:
@@ -54,5 +54,6 @@ This project demonstrates an advanced AI-powered UI automation agent 🎉 levera
 ## 💻 Usage Example
 
 ```bash
-docker-compose up
+python3 src/app.py
+```
 
